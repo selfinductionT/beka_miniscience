@@ -1,6 +1,7 @@
 #include <iostream>
 #include <list>
 #include <math.h>
+#include <fstream>
 
 class Point {
 public:
@@ -74,7 +75,7 @@ public:
     while (i != points.end()) {
       Point a = *i;
       Point b = *(++i);
-      if (length(a, b) < 0.1) {
+      if (length(a, b) > 0.01) {
 	float new_x = (a.x + b.x) / 2;
 	float new_y = (a.y + b.y) / 2;
 
@@ -84,16 +85,29 @@ public:
 	vx *= v_ph / v;
 	vy *= v_ph / v;
 	points.insert(i, Point(new_x, new_y, vx, vy)); // or "--i" ?
-	std::cout << i->x << std::endl;
       }	
     }
+  }
+
+  void write(std::string file) {
+    std::ofstream target;
+    target.open(file);
+
+    std::list<Point>::iterator i;
+    for (i = points.begin(); i != points.end(); ++i) {
+      target << i->x << ";" << i->y << "\n";
+    }
+
+    target.close();
   }
 };
 
 
 int main(){
   Front F = Front(100, 0, 0, 0.02);
-  for (int i = 0; i < 100; i++) {
+  for (int i = 0; i < 10000; i++) {
     F.move(1);
+    if (i % 10 == 0)
+      F.write(std::to_string(i) + ".csv");
   }
 }
