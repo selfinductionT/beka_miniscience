@@ -71,13 +71,15 @@ public:
 
   bool segments_crosses(Obstacle obst, float x, float y, float x_new, float y_new) {
     // firstly check if old and new points are on the different sizes of obstacle line
-    if ((obst.A * x + obst.B * y - 1) * (obst.A * x_new + obst.B * y_new - 1) < 0) {
+    //    if ((obst.A * x + obst.B * y - 1) * (obst.A * x_new + obst.B * y_new - 1) < 0.1) {
+    if (std::signbit((obst.A * x + obst.B * y - 1) * (obst.A * x_new + obst.B * y_new - 1))) {    
       // find line equation for [x, y, x_new, y_new]
       float A = (y_new - y)/(x*y_new - y*x_new);
       float B = (x - x_new)/(x*y_new - y*x_new);
 
       // and check if old ends of the obstacle are on the different sizes of this line
-      if ((A * obst.x_1 + B * obst.y_1 - 1) * (A * obst.x_2 + B * obst.y_2 - 1) < 0) {
+      //      if ((A * obst.x_1 + B * obst.y_1 - 1) * (A * obst.x_2 + B * obst.y_2 - 1) < 0.1) {
+      if (std::signbit((A * obst.x_1 + B * obst.y_1 - 1) * (A * obst.x_2 + B * obst.y_2 - 1))) {      
 	return 1;
       }
     }
@@ -178,6 +180,21 @@ public:
 	points.insert(i, Point(new_x, new_y, vx, vy, a.hist)); // or "--i" ?
       }	
     }
+    // for first and last points:
+    Point a = points.front();
+    Point b = *i;
+    float dist = length(a, b);    
+    if ((.05 < dist) and (dist < .1) and (a.hist == b.hist)) {
+      float new_x = (a.x + b.x) / 2;
+      float new_y = (a.y + b.y) / 2;
+      
+      float vx = (a.vx + b.vx) / 2;
+      float vy = (a.vy + b.vy) / 2;
+      float v = std::sqrt(std::pow(vx, 2) + std::pow(vy, 2));
+      vx *= v_ph / v;
+      vy *= v_ph / v;
+      points.push_back(Point(new_x, new_y, vx, vy, a.hist)); // or "--i" ?
+  }
   }
 
   void write(std::string file) {
@@ -195,10 +212,13 @@ public:
 
 
 int main(){
-  Front F = Front(10, 0, 0, 0.05);
-  std::array<Obstacle, 1> obst = {Obstacle(-5, -100, -5, 100)};
-  for (int i = 0; i < 1000; i++) {
-    F.move<1>(1, obst);
+  Front F = Front(10, 0, 0, 0.01);
+  std::array<Obstacle, 4> obst = {Obstacle(-5, -100, -5, 100),
+				  Obstacle(-100, 5, 100, 5),
+				  Obstacle(-100, -5, 100, -5),
+				  Obstacle(5, -100, 5, 100)};
+  for (int i = 0; i < 2000; i++) {
+    F.move<4>(1, obst);
     if (i % 10 == 0)
       std::cout << i << std::endl;
       F.write("./1/" + std::to_string(i) + ".csv");
