@@ -4,7 +4,7 @@
 #include <math.h>
 #include <fstream>
 
-
+#define EPS 1e-3
 // Obstacle is a line segment. Other types of obstacles do not exist.
 // Complex obstacles like square are just sets of line obstacles
 // Curve obstacles do not exist for now. Maybe we will add them later
@@ -71,15 +71,21 @@ public:
 
   bool segments_crosses(Obstacle obst, float x, float y, float x_new, float y_new) {
     // firstly check if old and new points are on the different sizes of obstacle line
-    //    if ((obst.A * x + obst.B * y - 1) * (obst.A * x_new + obst.B * y_new - 1) < 0.1) {
-    if (std::signbit((obst.A * x + obst.B * y - 1) * (obst.A * x_new + obst.B * y_new - 1))) {    
+
+    float old_are_right_to_obst = obst.A * x + obst.B * y - 1;
+    float new_are_right_to_obst = obst.A * x_new + obst.B * y_new - 1;
+    
+    //if (std::signbit((old_are_right_to_obst) * (new_are_right_to_obst))) {
+    if (std::abs((old_are_right_to_obst) * (new_are_right_to_obst)) < EPS) {    
       // find line equation for [x, y, x_new, y_new]
       float A = (y_new - y)/(x*y_new - y*x_new);
       float B = (x - x_new)/(x*y_new - y*x_new);
 
+      float endA_is_right_to_traj = A * obst.x_1 + B * obst.y_1 - 1;
+      float endB_is_right_to_traj = A * obst.x_2 + B * obst.y_2 - 1;
+      
       // and check if old ends of the obstacle are on the different sizes of this line
-      //      if ((A * obst.x_1 + B * obst.y_1 - 1) * (A * obst.x_2 + B * obst.y_2 - 1) < 0.1) {
-      if (std::signbit((A * obst.x_1 + B * obst.y_1 - 1) * (A * obst.x_2 + B * obst.y_2 - 1))) {      
+      if (std::signbit((endA_is_right_to_traj) * (endB_is_right_to_traj))) {      
 	return 1;
       }
     }
@@ -100,7 +106,6 @@ public:
 	  hist.push_front(&obstacle);
 	  reflect(obstacle.n_x, obstacle.n_y);
 	  reflected = 1;
-	  break;
 	}
     }
     if (reflected == 0) {
@@ -202,9 +207,23 @@ public:
     target.open(file);
 
     std::list<Point>::iterator i;
-    for (i = points.begin(); i != points.end(); ++i) {
-      target << i->x << ";" << i->y << "\n";
+    i = points.begin();
+    target << i->x << ";" << i->y << ";" << 0 << "\n";
+    std::list<Obstacle*> hist = i->hist;
+    i++;
+    while (i != points.end()){
+      if (i->hist == hist) {
+	target << i->x << ";" << i->y << ";" << 1 << "\n";
+	hist = i->hist;
+      }
+      else
+	target << i->x << ";" << i->y << ";" << 0 << "\n";
+
+      i++;
     }
+    // for (i = points.begin(); i != points.end(); ++i) {
+    //   target << i->x << ";" << i->y << "\n";
+    // }
 
     target.close();
   }
@@ -213,12 +232,21 @@ public:
 
 int main(){
   Front F = Front(10, 0, 0, 0.01);
-  std::array<Obstacle, 4> obst = {Obstacle(-5, -100, -5, 100),
-				  Obstacle(-100, 5, 100, 5),
-				  Obstacle(-100, -5, 100, -5),
-				  Obstacle(5, -100, 5, 100)};
-  for (int i = 0; i < 2000; i++) {
-    F.move<4>(1, obst);
+  const int N = 4;
+  std::array<Obstacle, N> obst = {
+    // Obstacle(-1, -1, -1, 1),
+    // Obstacle(-3, -3, -3, 3),
+    // Obstacle(-3, -3, 3, -3),
+    // Obstacle(3, -3, 3, 3),
+    // Obstacle(3, 3, -3, 3)};
+    Obstacle(-3, -2, -3, -3),
+    Obstacle(-3, -3, -2, -3),
+    Obstacle(-2, -3, -2, -2),
+    Obstacle(-2, -2, -3, -2),
+  };
+
+  for (int i = 0; i < 2001; i++) {
+    F.move<N>(1, obst);
     if (i % 10 == 0)
       std::cout << i << std::endl;
       F.write("./1/" + std::to_string(i) + ".csv");
